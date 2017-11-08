@@ -33,26 +33,12 @@
         android:layout_alignParentTop="true" />
 
     <TextView
-        android:id="@+id/smile_textview"
+        android:id="@+id/emotions_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        tools:text="smile" />
-
-    <TextView
-        android:id="@+id/age_textview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/smile_textview"
-        android:layout_margin="16dp"
-        tools:text="age" />
-
-    <TextView
-        android:id="@+id/ethnicity_textview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/age_textview"
-        android:layout_margin="16dp"
-        tools:text="ethnicity" />
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:text="emojis"
+        android:textAlignment="viewStart" />
 
 </RelativeLayout>
