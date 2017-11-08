@@ -1,1 +1,1 @@
-include ':CameraDetectorDemo', ':ImageDetectorDemo', ':VideoDetectorDemo', ':FrameDetectorDemo', ':ServiceFrameDetectorDemo'
+include ':CameraDetectorDemo'

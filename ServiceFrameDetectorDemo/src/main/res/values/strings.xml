@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">ServiceFrameDetectorDemo</string>
-    <string name="main_activity_msg">Position your face in front of the front-facing camera.  When the Affdex SDK finds or loses your face, a toast message will appear.</string>
-    <string name="go_to_2nd_activity">Go to 2nd Activity</string>
-    <string name="second_activity_msg">This activity exists just to demonstrate that the Affdex integration is independent of Activity changes.</string>
-    <string name="camera_permission_denied">Sorry, camera permission is needed for this demo app to function.</string>>
-    <string name="face_found">found face</string>
-    <string name="face_lost">lost face</string>
-</resources>
