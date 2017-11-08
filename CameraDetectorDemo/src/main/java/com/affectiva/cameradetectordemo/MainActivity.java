@@ -16,25 +16,25 @@ import com.affectiva.android.affdex.sdk.detector.CameraDetector;
 import com.affectiva.android.affdex.sdk.detector.Detector;
 import com.affectiva.android.affdex.sdk.detector.Face;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 /**
  * This is a very bare sample app to demonstrate the usage of the CameraDetector object from Affectiva.
  * It displays statistics on frames per second, percentage of time a face was detected, and the user's smile score.
- *
+ * <p>
  * The app shows off the maneuverability of the SDK by allowing the user to start and stop the SDK and also hide the camera SurfaceView.
- *
+ * <p>
  * For use with SDK 2.02
  */
 public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener {
 
     final String LOG_TAG = "CameraDetectorDemo";
+    static final String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Contempt", "Sadness", "Surprise", "Joy"};
 
     Button startSDKButton;
     Button surfaceViewVisibilityButton;
-    TextView smileTextView;
-    TextView ageTextView;
-    TextView ethnicityTextView;
+    TextView emotionsTextView;
     ToggleButton toggleButton;
 
     SurfaceView cameraPreview;
@@ -54,16 +54,13 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        smileTextView = (TextView) findViewById(R.id.smile_textview);
-        ageTextView = (TextView) findViewById(R.id.age_textview);
-        ethnicityTextView = (TextView) findViewById(R.id.ethnicity_textview);
-
+        emotionsTextView = (TextView) findViewById(R.id.emotions_textview);
         toggleButton = (ToggleButton) findViewById(R.id.front_back_toggle_button);
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 isCameraBack = isChecked;
-                switchCamera(isCameraBack? CameraDetector.CameraType.CAMERA_BACK : CameraDetector.CameraType.CAMERA_FRONT);
+                switchCamera(isCameraBack ? CameraDetector.CameraType.CAMERA_BACK : CameraDetector.CameraType.CAMERA_FRONT);
             }
         });
 
@@ -97,24 +94,24 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
                     width = measureWidth;
                     height = measureHeight;
                 } else {
-                    float viewAspectRatio = (float)measureWidth/measureHeight;
-                    float cameraPreviewAspectRatio = (float) previewWidth/previewHeight;
+                    float viewAspectRatio = (float) measureWidth / measureHeight;
+                    float cameraPreviewAspectRatio = (float) previewWidth / previewHeight;
 
                     if (cameraPreviewAspectRatio > viewAspectRatio) {
                         width = measureWidth;
-                        height =(int) (measureWidth / cameraPreviewAspectRatio);
+                        height = (int) (measureWidth / cameraPreviewAspectRatio);
                     } else {
                         width = (int) (measureHeight * cameraPreviewAspectRatio);
                         height = measureHeight;
                     }
                 }
-                setMeasuredDimension(width,height);
+                setMeasuredDimension(width, height);
             }
         };
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.addRule(RelativeLayout.CENTER_IN_PARENT,RelativeLayout.TRUE);
+        params.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
         cameraPreview.setLayoutParams(params);
-        mainLayout.addView(cameraPreview,0);
+        mainLayout.addView(cameraPreview, 0);
 
         surfaceViewVisibilityButton = (Button) findViewById(R.id.surfaceview_visibility_button);
         surfaceViewVisibilityButton.setText("HIDE SURFACE VIEW");
@@ -132,9 +129,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         });
 
         detector = new CameraDetector(this, CameraDetector.CameraType.CAMERA_FRONT, cameraPreview);
-        detector.setDetectSmile(true);
-        detector.setDetectAge(true);
-        detector.setDetectEthnicity(true);
+        setEmotionsDetectors(detector);
         detector.setImageListener(this);
         detector.setOnCameraEventListener(this);
     }
@@ -174,60 +169,10 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         if (list == null)
             return;
         if (list.size() == 0) {
-            smileTextView.setText("NO FACE");
-            ageTextView.setText("");
-            ethnicityTextView.setText("");
+            emotionsTextView.setText("NO FACE");
         } else {
             Face face = list.get(0);
-            smileTextView.setText(String.format("SMILE\n%.2f",face.expressions.getSmile()));
-            switch (face.appearance.getAge()) {
-                case AGE_UNKNOWN:
-                    ageTextView.setText("");
-                    break;
-                case AGE_UNDER_18:
-                    ageTextView.setText(R.string.age_under_18);
-                    break;
-                case AGE_18_24:
-                    ageTextView.setText(R.string.age_18_24);
-                    break;
-                case AGE_25_34:
-                    ageTextView.setText(R.string.age_25_34);
-                    break;
-                case AGE_35_44:
-                    ageTextView.setText(R.string.age_35_44);
-                    break;
-                case AGE_45_54:
-                    ageTextView.setText(R.string.age_45_54);
-                    break;
-                case AGE_55_64:
-                    ageTextView.setText(R.string.age_55_64);
-                    break;
-                case AGE_65_PLUS:
-                    ageTextView.setText(R.string.age_over_64);
-                    break;
-            }
-
-            switch (face.appearance.getEthnicity()) {
-                case UNKNOWN:
-                    ethnicityTextView.setText("");
-                    break;
-                case CAUCASIAN:
-                    ethnicityTextView.setText(R.string.ethnicity_caucasian);
-                    break;
-                case BLACK_AFRICAN:
-                    ethnicityTextView.setText(R.string.ethnicity_black_african);
-                    break;
-                case EAST_ASIAN:
-                    ethnicityTextView.setText(R.string.ethnicity_east_asian);
-                    break;
-                case SOUTH_ASIAN:
-                    ethnicityTextView.setText(R.string.ethnicity_south_asian);
-                    break;
-                case HISPANIC:
-                    ethnicityTextView.setText(R.string.ethnicity_hispanic);
-                    break;
-            }
-
+            emotionsTextView.setText(getEmotionsExpressions(face.emotions));
         }
     }
 
@@ -242,5 +187,34 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
             previewWidth = width;
         }
         cameraPreview.requestLayout();
+    }
+
+    private String getEmotionsExpressions(Face.Emotions emotions) {
+        StringBuilder faceEmotions = new StringBuilder();
+        try {
+            Class detectorClass = Class.forName("com.affectiva.android.affdex.sdk.detector.Face$Emotions");
+            for (String emotion : EMOTIONS) {
+                faceEmotions.append(String.format(
+                        emotion + ": %.2f",
+                        detectorClass.getMethod("get" + emotion)
+                                .invoke(emotions)
+                ) + "\n");
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return faceEmotions.toString();
+    }
+
+    private void setEmotionsDetectors(CameraDetector detector) {
+        try {
+            for (String emotion : EMOTIONS) {
+                detector.getClass().getSuperclass()
+                        .getMethod("setDetect" + emotion, Boolean.TYPE)
+                        .invoke(detector, true);
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
     }
 }
