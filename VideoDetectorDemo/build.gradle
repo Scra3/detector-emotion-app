@@ -1,12 +1,13 @@
 apply plugin: 'com.android.application'
-
 android {
     defaultConfig {
         applicationId "com.affectiva.videodetectordemo"
         versionName "3.2.0-02"
     }
+    buildToolsVersion '27.0.1'
+    compileSdkVersion 27
 }
-
 apply from: "../module-defaults.gradle"
 
-
+dependencies {
+}
