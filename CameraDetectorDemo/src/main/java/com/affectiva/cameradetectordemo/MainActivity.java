@@ -1,11 +1,18 @@
 package com.affectiva.cameradetectordemo;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.util.Log;
+import android.view.Menu;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.CompoundButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -17,26 +24,36 @@ import com.affectiva.android.affdex.sdk.detector.Detector;
 import com.affectiva.android.affdex.sdk.detector.Face;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * This is a very bare sample app to demonstrate the usage of the CameraDetector object from Affectiva.
- * It displays statistics on frames per second, percentage of time a face was detected, and the user's smile score.
+ * It displays statistics on frames per second, percenLOG_TAGe of time a face was detected, and the user's smile score.
  * <p>
  * The app shows off the maneuverability of the SDK by allowing the user to start and stop the SDK and also hide the camera SurfaceView.
  * <p>
  * For use with SDK 2.02
  */
-public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener {
+public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener {
+    private final String LOG_TAG = "CameraDetectorDemo";
+    private final static String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Contempt", "Sadness", "Surprise", "Joy"};
+    private final int REQ_CODE_SPEECH_INPUT = 100;
 
-    final String LOG_TAG = "CameraDetectorDemo";
-    static final String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Contempt", "Sadness", "Surprise", "Joy"};
+    /**
+     * MIC
+     **/
+    TextView txtSpeechInput;
+    ImageButton btnSpeak;
 
+    /**
+     * EMOTIONS
+     **/
     Button startSDKButton;
     Button surfaceViewVisibilityButton;
     TextView emotionsTextView;
     ToggleButton toggleButton;
-
     SurfaceView cameraPreview;
 
     boolean isCameraBack = false;
@@ -45,6 +62,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     RelativeLayout mainLayout;
 
     CameraDetector detector;
+    SpeechRecognizer speech;
 
     int previewWidth = 0;
     int previewHeight = 0;
@@ -54,8 +72,19 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        txtSpeechInput = (TextView) findViewById(R.id.txtSpeechInput);
+        btnSpeak = (ImageButton) findViewById(R.id.btnSpeak);
+
         emotionsTextView = (TextView) findViewById(R.id.emotions_textview);
         toggleButton = (ToggleButton) findViewById(R.id.front_back_toggle_button);
+
+        btnSpeak.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                promptSpeechInput();
+            }
+        });
+
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -189,6 +218,27 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         cameraPreview.requestLayout();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode) {
+            case REQ_CODE_SPEECH_INPUT: {
+                if (resultCode == RESULT_OK && null != data) {
+                    ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    txtSpeechInput.setText(result.get(0));
+                }
+                break;
+            }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
     private String getEmotionsExpressions(Face.Emotions emotions) {
         StringBuilder faceEmotions = new StringBuilder();
         try {
@@ -216,5 +266,55 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
+    }
+
+    private void promptSpeechInput() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent. EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+
+        speech = SpeechRecognizer.createSpeechRecognizer(this);
+        speech.setRecognitionListener(this);
+        speech.startListening(intent);
+    }
+
+    public void onReadyForSpeech(Bundle params) {
+        Log.d(LOG_TAG, "onReadyForSpeech");
+    }
+
+    public void onBeginningOfSpeech() {
+        Log.d(LOG_TAG, "onBeginningOfSpeech");
+    }
+
+    public void onRmsChanged(float rmsdB) {
+        Log.d(LOG_TAG, "onRmsChanged");
+    }
+
+    public void onBufferReceived(byte[] buffer) {
+        Log.d(LOG_TAG, "onBufferReceived");
+    }
+
+    public void onEndOfSpeech() {
+        Log.d(LOG_TAG, "onEndofSpeech");
+    }
+
+    public void onError(int error) {
+        Log.d(LOG_TAG, "error " + error);
+        txtSpeechInput.setText(R.string.speech_error);
+    }
+
+    public void onResults(Bundle results) {
+        ArrayList<String> textSpeech = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        txtSpeechInput.setText(String.valueOf(textSpeech.get(0)));
+    }
+
+    public void onPartialResults(Bundle partialResults) {
+        Log.d(LOG_TAG, "onPartialResults");
+    }
+
+    public void onEvent(int eventType, Bundle params) {
+        Log.d(LOG_TAG, "onEvent " + eventType);
     }
 }

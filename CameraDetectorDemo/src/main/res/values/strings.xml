@@ -12,5 +12,8 @@
     <string name="ethnicity_black_african">Black African</string>
     <string name="ethnicity_east_asian">East Asian</string>
     <string name="ethnicity_south_asian">South Asian</string>
-    <string name="ethnicity_hispanic">Hispanic</string>
+    <string name="speech_prompt">Say something&#8320;</string>
+    <string name="speech_error">Try again please</string>
+    <string name="speech_not_supported">Sorry ! Your device doesn\'t support speech</string>
+    <string name="tap_on_mic">Tap on mic to speak</string>
 </resources>
