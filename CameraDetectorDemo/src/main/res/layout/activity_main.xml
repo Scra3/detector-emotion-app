@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/sdk_start_button"
+        android:id="@+id/voice_start_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
@@ -18,20 +18,12 @@
         android:id="@+id/front_back_toggle_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@id/sdk_start_button"
+        android:layout_above="@id/voice_start_button"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:padding="5dp"
         android:textOff="FRONT"
         android:textOn="BACK" />
-
-    <Button
-        android:id="@+id/surfaceview_visibility_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true" />
 
     <TextView
         android:id="@+id/emotions_textview"
@@ -42,15 +34,6 @@
         android:text="emojis"
         android:textAlignment="viewStart" />
 
-    <ImageButton
-        android:id="@+id/btnSpeak"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="13dp"
-        android:src="@android:drawable/presence_invisible" />
-
     <TextView
         android:id="@+id/txtSpeechInput"
         android:layout_width="wrap_content"
@@ -60,7 +43,6 @@
         android:layout_alignParentEnd="true"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="87dp"
-        android:text="TextView"
         android:textAlignment="viewStart"
         android:textColor="@android:color/black"
         android:textSize="24sp" />

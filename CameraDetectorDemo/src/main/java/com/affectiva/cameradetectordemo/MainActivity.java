@@ -2,6 +2,7 @@ package com.affectiva.cameradetectordemo;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -12,7 +13,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.CompoundButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -25,6 +25,8 @@ import com.affectiva.android.affdex.sdk.detector.Face;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,25 +41,22 @@ import java.util.Locale;
 public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener {
     private final String LOG_TAG = "CameraDetectorDemo";
     private final static String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Contempt", "Sadness", "Surprise", "Joy"};
-    private final int REQ_CODE_SPEECH_INPUT = 100;
+    private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
 
     /**
      * MIC
      **/
     TextView txtSpeechInput;
-    ImageButton btnSpeak;
-
     /**
      * EMOTIONS
      **/
-    Button startSDKButton;
-    Button surfaceViewVisibilityButton;
+    Button startVoiceRecordedButton;
     TextView emotionsTextView;
     ToggleButton toggleButton;
     SurfaceView cameraPreview;
 
     boolean isCameraBack = false;
-    boolean isSDKStarted = false;
+    boolean isVoiceRecorded = false;
 
     RelativeLayout mainLayout;
 
@@ -73,42 +72,34 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         setContentView(R.layout.activity_main);
 
         txtSpeechInput = (TextView) findViewById(R.id.txtSpeechInput);
-        btnSpeak = (ImageButton) findViewById(R.id.btnSpeak);
 
         emotionsTextView = (TextView) findViewById(R.id.emotions_textview);
         toggleButton = (ToggleButton) findViewById(R.id.front_back_toggle_button);
 
-        btnSpeak.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                promptSpeechInput();
-            }
-        });
-
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 isCameraBack = isChecked;
                 switchCamera(isCameraBack ? CameraDetector.CameraType.CAMERA_BACK : CameraDetector.CameraType.CAMERA_FRONT);
             }
         });
 
-        startSDKButton = (Button) findViewById(R.id.sdk_start_button);
-        startSDKButton.setOnClickListener(new View.OnClickListener() {
+        startVoiceRecordedButton = (Button) findViewById(R.id.voice_start_button);
+        startVoiceRecordedButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isSDKStarted) {
-                    isSDKStarted = false;
-                    stopDetector();
-                    startSDKButton.setText("Start Camera");
-                } else {
-                    isSDKStarted = true;
+                if (!isVoiceRecorded) {
                     startDetector();
-                    startSDKButton.setText("Stop Camera");
+                    promptSpeechInput();
+
+                    startVoiceRecordedButton.setText("is recording...");
+                    startVoiceRecordedButton.setEnabled(false);
+
+                    txtSpeechInput.setText(null);
+                    txtSpeechInput.setBackgroundColor(Color.TRANSPARENT);
                 }
             }
         });
-        startSDKButton.setText("Start Camera");
+        startVoiceRecordedButton.setText("Start record");
 
         //We create a custom SurfaceView that resizes itself to match the aspect ratio of the incoming camera frames
         mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
@@ -142,39 +133,10 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         cameraPreview.setLayoutParams(params);
         mainLayout.addView(cameraPreview, 0);
 
-        surfaceViewVisibilityButton = (Button) findViewById(R.id.surfaceview_visibility_button);
-        surfaceViewVisibilityButton.setText("HIDE SURFACE VIEW");
-        surfaceViewVisibilityButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (cameraPreview.getVisibility() == View.VISIBLE) {
-                    cameraPreview.setVisibility(View.INVISIBLE);
-                    surfaceViewVisibilityButton.setText("SHOW SURFACE VIEW");
-                } else {
-                    cameraPreview.setVisibility(View.VISIBLE);
-                    surfaceViewVisibilityButton.setText("HIDE SURFACE VIEW");
-                }
-            }
-        });
-
         detector = new CameraDetector(this, CameraDetector.CameraType.CAMERA_FRONT, cameraPreview);
         setEmotionsDetectors(detector);
         detector.setImageListener(this);
         detector.setOnCameraEventListener(this);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (isSDKStarted) {
-            startDetector();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        stopDetector();
     }
 
     void startDetector() {
@@ -219,65 +181,9 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        switch (requestCode) {
-            case REQ_CODE_SPEECH_INPUT: {
-                if (resultCode == RESULT_OK && null != data) {
-                    ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                    txtSpeechInput.setText(result.get(0));
-                }
-                break;
-            }
-        }
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
-    }
-
-    private String getEmotionsExpressions(Face.Emotions emotions) {
-        StringBuilder faceEmotions = new StringBuilder();
-        try {
-            Class detectorClass = Class.forName("com.affectiva.android.affdex.sdk.detector.Face$Emotions");
-            for (String emotion : EMOTIONS) {
-                faceEmotions.append(String.format(
-                        emotion + ": %.2f",
-                        detectorClass.getMethod("get" + emotion)
-                                .invoke(emotions)
-                ) + "\n");
-            }
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return faceEmotions.toString();
-    }
-
-    private void setEmotionsDetectors(CameraDetector detector) {
-        try {
-            for (String emotion : EMOTIONS) {
-                detector.getClass().getSuperclass()
-                        .getMethod("setDetect" + emotion, Boolean.TYPE)
-                        .invoke(detector, true);
-            }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void promptSpeechInput() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent. EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-
-        speech = SpeechRecognizer.createSpeechRecognizer(this);
-        speech.setRecognitionListener(this);
-        speech.startListening(intent);
     }
 
     public void onReadyForSpeech(Bundle params) {
@@ -285,7 +191,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     }
 
     public void onBeginningOfSpeech() {
-        Log.d(LOG_TAG, "onBeginningOfSpeech");
+        isVoiceRecorded = true;
     }
 
     public void onRmsChanged(float rmsdB) {
@@ -306,8 +212,22 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     }
 
     public void onResults(Bundle results) {
+        stopDetector();
+        isVoiceRecorded = false;
+
+        startVoiceRecordedButton.setText("Start record");
+        startVoiceRecordedButton.setEnabled(true);
+
         ArrayList<String> textSpeech = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         txtSpeechInput.setText(String.valueOf(textSpeech.get(0)));
+
+        if (emotionsRecorded.size() > 0) {
+            txtSpeechInput.setBackgroundColor(
+                    getEmotionColor(getEmotionFromDegree(Collections.max(emotionsRecorded.values()))
+                    ));
+
+            emotionsRecorded.clear();
+        }
     }
 
     public void onPartialResults(Bundle partialResults) {
@@ -316,5 +236,79 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
     public void onEvent(int eventType, Bundle params) {
         Log.d(LOG_TAG, "onEvent " + eventType);
+    }
+
+    private String getEmotionsExpressions(Face.Emotions emotions) {
+        StringBuilder faceEmotions = new StringBuilder();
+
+        try {
+            Class detectorClass = Class.forName("com.affectiva.android.affdex.sdk.detector.Face$Emotions");
+            for (String emotion : EMOTIONS) {
+                Object emotionDegree = detectorClass.getMethod("get" + emotion)
+                        .invoke(emotions);
+                faceEmotions.append(
+                        String.format(emotion + ": %.2f",
+                                emotionDegree
+                        ) + "\n");
+
+                if (isVoiceRecorded) {
+                    saveEmotion((Float) emotionDegree, emotion);
+                }
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return faceEmotions.toString();
+    }
+
+    private void saveEmotion(Float emotionDegree, String emotion) {
+        if (emotionsRecorded.containsKey(emotion)) {
+            emotionsRecorded.put(emotion, (emotionsRecorded.get(emotion) + emotionDegree) / 2);
+        } else {
+            emotionsRecorded.put(emotion, emotionDegree);
+        }
+    }
+
+    private void setEmotionsDetectors(CameraDetector detector) {
+        try {
+            for (String emotion : EMOTIONS) {
+                detector.getClass().getSuperclass()
+                        .getMethod("setDetect" + emotion, Boolean.TYPE)
+                        .invoke(detector, true);
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void promptSpeechInput() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+
+        speech = SpeechRecognizer.createSpeechRecognizer(this);
+        speech.setRecognitionListener(this);
+        speech.startListening(intent);
+    }
+
+    private int getEmotionColor(String emotion) {
+        Color color = new Color();
+        switch (emotion) {
+            case "Joy":
+                return color.YELLOW;
+            case "Anger":
+                return color.RED;
+        }
+        return color.WHITE;
+    }
+
+    private String getEmotionFromDegree(Float emotionDegree) {
+        for (String emo : emotionsRecorded.keySet()) {
+            if (emotionsRecorded.get(emo).equals(emotionDegree)) {
+                return emo;
+            }
+        }
+        return null;
     }
 }
