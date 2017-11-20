@@ -40,7 +40,7 @@ import java.util.Locale;
  */
 public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener {
     private final String LOG_TAG = "CameraDetectorDemo";
-    private final static String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Contempt", "Sadness", "Surprise", "Joy"};
+    private final static String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Sadness", "Joy"};
     private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
 
     /**
@@ -87,18 +87,18 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         startVoiceRecordedButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!isVoiceRecorded) {
-                    startDetector();
-                    promptSpeechInput();
+                isVoiceRecorded = true;
 
-                    startVoiceRecordedButton.setText("is recording...");
-                    startVoiceRecordedButton.setEnabled(false);
+                startVoiceRecordedButton.setText("is recording...");
+                startVoiceRecordedButton.setEnabled(false);
 
-                    txtSpeechInput.setText(null);
-                    txtSpeechInput.setBackgroundColor(Color.TRANSPARENT);
-                }
+                txtSpeechInput.setText(null);
+                txtSpeechInput.setBackgroundColor(Color.TRANSPARENT);
+
+                promptSpeechInput();
             }
         });
+        startVoiceRecordedButton.setEnabled(false);
         startVoiceRecordedButton.setText("Start record");
 
         //We create a custom SurfaceView that resizes itself to match the aspect ratio of the incoming camera frames
@@ -137,17 +137,12 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         setEmotionsDetectors(detector);
         detector.setImageListener(this);
         detector.setOnCameraEventListener(this);
+        startDetector();
     }
 
     void startDetector() {
         if (!detector.isRunning()) {
             detector.start();
-        }
-    }
-
-    void stopDetector() {
-        if (detector.isRunning()) {
-            detector.stop();
         }
     }
 
@@ -160,8 +155,14 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         if (list == null)
             return;
         if (list.size() == 0) {
+            if (!isVoiceRecorded) {
+                startVoiceRecordedButton.setEnabled(false);
+            }
             emotionsTextView.setText("NO FACE");
         } else {
+            if (!isVoiceRecorded) {
+                startVoiceRecordedButton.setEnabled(true);
+            }
             Face face = list.get(0);
             emotionsTextView.setText(getEmotionsExpressions(face.emotions));
         }
@@ -187,11 +188,9 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     }
 
     public void onReadyForSpeech(Bundle params) {
-        Log.d(LOG_TAG, "onReadyForSpeech");
     }
 
     public void onBeginningOfSpeech() {
-        isVoiceRecorded = true;
     }
 
     public void onRmsChanged(float rmsdB) {
@@ -209,25 +208,20 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     public void onError(int error) {
         Log.d(LOG_TAG, "error " + error);
         txtSpeechInput.setText(R.string.speech_error);
+        stopRecordingVoice();
     }
 
     public void onResults(Bundle results) {
-        stopDetector();
-        isVoiceRecorded = false;
-
-        startVoiceRecordedButton.setText("Start record");
-        startVoiceRecordedButton.setEnabled(true);
-
         ArrayList<String> textSpeech = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         txtSpeechInput.setText(String.valueOf(textSpeech.get(0)));
 
         if (emotionsRecorded.size() > 0) {
-            txtSpeechInput.setBackgroundColor(
+            txtSpeechInput.setBackgroundResource(
                     getEmotionColor(getEmotionFromDegree(Collections.max(emotionsRecorded.values()))
                     ));
-
-            emotionsRecorded.clear();
         }
+
+        stopRecordingVoice();
     }
 
     public void onPartialResults(Bundle partialResults) {
@@ -293,14 +287,20 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     }
 
     private int getEmotionColor(String emotion) {
-        Color color = new Color();
         switch (emotion) {
             case "Joy":
-                return color.YELLOW;
+                return R.color.Joy;
             case "Anger":
-                return color.RED;
+                return R.color.Anger;
+            case "Fear":
+                return R.color.Fear;
+            case "Disgust":
+                return R.color.Disgust;
+            case "Sadness":
+                return R.color.Sadness;
+            default:
+                return R.color.Neutral;
         }
-        return color.WHITE;
     }
 
     private String getEmotionFromDegree(Float emotionDegree) {
@@ -310,5 +310,12 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
             }
         }
         return null;
+    }
+
+    private void stopRecordingVoice() {
+        isVoiceRecorded = false;
+        startVoiceRecordedButton.setText("Start record");
+        startVoiceRecordedButton.setEnabled(true);
+        emotionsRecorded.clear();
     }
 }
