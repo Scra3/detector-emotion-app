@@ -1,8 +1,11 @@
 package com.affectiva.cameradetectordemo;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -14,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import com.affectiva.android.affdex.sdk.Frame;
@@ -38,7 +42,7 @@ import java.util.Locale;
  */
 public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener {
     private final String LOG_TAG = "CameraDetectorDemo";
-    private final static String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Sadness", "Joy"};
+    private final static String[] EMOTIONS = {"Anger", "Fear", "Sadness", "Joy"};
     private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
 
     EditText txtSpeechInput;
@@ -46,6 +50,8 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     ImageButton startVoiceRecordedButton;
     ImageButton switchViewButton;
     ImageButton textToSpeechButton;
+    ImageButton textClearButton;
+    ImageView emoticonImage;
 
     SurfaceView cameraPreview;
 
@@ -56,6 +62,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
     CameraDetector detector;
     SpeechRecognizer speech;
+    Vibrator vibrator;
 
     int previewWidth = 0;
     int previewHeight = 0;
@@ -65,11 +72,24 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
+
         txtSpeechInput = (EditText) findViewById(R.id.txt_speech_input);
-        switchViewButton = (ImageButton) findViewById(R.id.front_back_button);
+        textClearButton = (ImageButton) findViewById(R.id.txt_clear_imageButton);
+        switchViewButton = (ImageButton) findViewById(R.id.front_back_imageButton);
         startVoiceRecordedButton = (ImageButton) findViewById(R.id.voice_start_imageButton);
         textToSpeechButton = (ImageButton) findViewById(R.id.text_to_speech_imageButton);
-        mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
+        emoticonImage = (ImageView) findViewById(R.id.emoticon_imageView);
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        textClearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                txtSpeechInput.setText(null);
+                emoticonImage.setImageDrawable(null);
+                emoticonImage.setBackground(null);
+            }
+        });
 
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
@@ -233,7 +253,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
     @Override
     public void onResults(Bundle results) {
-        writeSpeechToText(results);
+        speechToText(results);
         stopRecordingVoice();
     }
 
@@ -301,12 +321,25 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
                 return R.color.Anger;
             case "Fear":
                 return R.color.Fear;
-            case "Disgust":
-                return R.color.Disgust;
             case "Sadness":
                 return R.color.Sadness;
             default:
                 return R.color.Neutral;
+        }
+    }
+
+    private int getEmotionEmoticon(String emotion) {
+        switch (emotion) {
+            case "Joy":
+                return R.drawable.joy;
+            case "Anger":
+                return R.drawable.anger;
+            case "Fear":
+                return R.drawable.fear;
+            case "Sadness":
+                return R.drawable.sadness;
+            default:
+                return R.drawable.neutral;
         }
     }
 
@@ -326,22 +359,26 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         emotionsRecorded.clear();
     }
 
-    private void writeSpeechToText(Bundle results) {
+    private void speechToText(Bundle results) {
         ArrayList<String> textSpeech =
                 results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         txtSpeechInput.setText(String.valueOf(textSpeech.get(0)));
 
         if (emotionsRecorded.size() > 0) {
-            txtSpeechInput.setTextColor(
-                    getResources().getColor(
-                            getEmotionColor(
-                                    getEmotionFromDegree(Collections.max(emotionsRecorded.values()))
-                            )));
+            String emotion = getEmotionFromDegree(Collections.max(emotionsRecorded.values()));
+            int emotionColor =getResources().getColor(getEmotionColor(emotion));
+            Drawable emoImg = getResources().getDrawable(getEmotionEmoticon(emotion));
+            emoticonImage.setBackgroundColor(emotionColor);
+            emoticonImage.setImageDrawable(emoImg);
+
+            txtSpeechInput.setTextColor(emotionColor);
         }
     }
 
     private void speech() {
-        tts.speak(txtSpeechInput.getText().toString(),
-                TextToSpeech.QUEUE_FLUSH, null, null);
+        String text = txtSpeechInput.getText().toString();
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+        // Morse m = new Morse(text, vibrator, 100);
+        // m.morseToImpulses();
     }
 }
