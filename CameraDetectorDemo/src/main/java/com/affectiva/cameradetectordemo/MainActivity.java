@@ -2,21 +2,19 @@ package com.affectiva.cameradetectordemo;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
-import android.widget.ToggleButton;
 
 import com.affectiva.android.affdex.sdk.Frame;
 import com.affectiva.android.affdex.sdk.detector.CameraDetector;
@@ -43,16 +41,12 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     private final static String[] EMOTIONS = {"Anger", "Fear", "Disgust", "Sadness", "Joy"};
     private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
 
-    /**
-     * MIC
-     **/
-    TextView txtSpeechInput;
-    /**
-     * EMOTIONS
-     **/
-    Button startVoiceRecordedButton;
-    TextView emotionsTextView;
-    ToggleButton toggleButton;
+    EditText txtSpeechInput;
+    TextToSpeech tts;
+    ImageButton startVoiceRecordedButton;
+    ImageButton switchViewButton;
+    ImageButton textToSpeechButton;
+
     SurfaceView cameraPreview;
 
     boolean isCameraBack = false;
@@ -67,42 +61,56 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     int previewHeight = 0;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+        txtSpeechInput = (EditText) findViewById(R.id.txt_speech_input);
+        switchViewButton = (ImageButton) findViewById(R.id.front_back_button);
+        startVoiceRecordedButton = (ImageButton) findViewById(R.id.voice_start_imageButton);
+        textToSpeechButton = (ImageButton) findViewById(R.id.text_to_speech_imageButton);
+        mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
 
-        txtSpeechInput = (TextView) findViewById(R.id.txtSpeechInput);
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
+                    tts.setLanguage(Locale.getDefault());
+                }
+            }
+        });
 
-        emotionsTextView = (TextView) findViewById(R.id.emotions_textview);
-        toggleButton = (ToggleButton) findViewById(R.id.front_back_toggle_button);
+        textToSpeechButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                speech();
+            }
+        });
 
-        toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                isCameraBack = isChecked;
+        switchViewButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isCameraBack = !isCameraBack;
                 switchCamera(isCameraBack ? CameraDetector.CameraType.CAMERA_BACK : CameraDetector.CameraType.CAMERA_FRONT);
             }
         });
 
-        startVoiceRecordedButton = (Button) findViewById(R.id.voice_start_button);
         startVoiceRecordedButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 isVoiceRecorded = true;
 
-                startVoiceRecordedButton.setText("is recording...");
                 startVoiceRecordedButton.setEnabled(false);
+                startVoiceRecordedButton.setImageResource(R.drawable.voice_recorder_disabled_icon);
 
                 txtSpeechInput.setText(null);
-                txtSpeechInput.setBackgroundColor(Color.TRANSPARENT);
 
                 promptSpeechInput();
             }
         });
         startVoiceRecordedButton.setEnabled(false);
-        startVoiceRecordedButton.setText("Start record");
 
         //We create a custom SurfaceView that resizes itself to match the aspect ratio of the incoming camera frames
-        mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
         cameraPreview = new SurfaceView(this) {
             @Override
             public void onMeasure(int widthSpec, int heightSpec) {
@@ -125,15 +133,21 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
                         height = measureHeight;
                     }
                 }
-                setMeasuredDimension(width, height);
+                setMeasuredDimension(width + 200, height + 200);
             }
         };
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        RelativeLayout.LayoutParams params =
+                new RelativeLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
         params.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
         cameraPreview.setLayoutParams(params);
         mainLayout.addView(cameraPreview, 0);
 
-        detector = new CameraDetector(this, CameraDetector.CameraType.CAMERA_FRONT, cameraPreview);
+        detector = new CameraDetector(this,
+                CameraDetector.CameraType.CAMERA_FRONT,
+                cameraPreview);
         setEmotionsDetectors(detector);
         detector.setImageListener(this);
         detector.setOnCameraEventListener(this);
@@ -157,14 +171,16 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         if (list.size() == 0) {
             if (!isVoiceRecorded) {
                 startVoiceRecordedButton.setEnabled(false);
+                startVoiceRecordedButton.setImageResource(R.drawable.voice_recorder_disabled_icon);
             }
-            emotionsTextView.setText("NO FACE");
+
         } else {
-            if (!isVoiceRecorded) {
+            if (isVoiceRecorded) {
+                recordEmotions(list.get(0).emotions);
+            } else {
                 startVoiceRecordedButton.setEnabled(true);
+                startVoiceRecordedButton.setImageResource(R.drawable.voice_recorder_icon);
             }
-            Face face = list.get(0);
-            emotionsTextView.setText(getEmotionsExpressions(face.emotions));
         }
     }
 
@@ -188,11 +204,14 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     }
 
     public void onReadyForSpeech(Bundle params) {
+        startVoiceRecordedButton.setImageResource(R.drawable.voice_recording_icon);
     }
 
+    @Override
     public void onBeginningOfSpeech() {
     }
 
+    @Override
     public void onRmsChanged(float rmsdB) {
         Log.d(LOG_TAG, "onRmsChanged");
     }
@@ -201,26 +220,20 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         Log.d(LOG_TAG, "onBufferReceived");
     }
 
+    @Override
     public void onEndOfSpeech() {
         Log.d(LOG_TAG, "onEndofSpeech");
     }
 
+    @Override
     public void onError(int error) {
-        Log.d(LOG_TAG, "error " + error);
-        txtSpeechInput.setText(R.string.speech_error);
+        txtSpeechInput.setHint(R.string.speech_error);
         stopRecordingVoice();
     }
 
+    @Override
     public void onResults(Bundle results) {
-        ArrayList<String> textSpeech = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        txtSpeechInput.setText(String.valueOf(textSpeech.get(0)));
-
-        if (emotionsRecorded.size() > 0) {
-            txtSpeechInput.setBackgroundResource(
-                    getEmotionColor(getEmotionFromDegree(Collections.max(emotionsRecorded.values()))
-                    ));
-        }
-
+        writeSpeechToText(results);
         stopRecordingVoice();
     }
 
@@ -232,34 +245,28 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         Log.d(LOG_TAG, "onEvent " + eventType);
     }
 
-    private String getEmotionsExpressions(Face.Emotions emotions) {
-        StringBuilder faceEmotions = new StringBuilder();
-
+    private void recordEmotions(Face.Emotions emotions) {
         try {
-            Class detectorClass = Class.forName("com.affectiva.android.affdex.sdk.detector.Face$Emotions");
+            Class detectorClass =
+                    Class.forName("com.affectiva.android.affdex.sdk.detector.Face$Emotions");
             for (String emotion : EMOTIONS) {
-                Object emotionDegree = detectorClass.getMethod("get" + emotion)
-                        .invoke(emotions);
-                faceEmotions.append(
-                        String.format(emotion + ": %.2f",
-                                emotionDegree
-                        ) + "\n");
+                Object emotionDegree =
+                        detectorClass.getMethod("get" + emotion).invoke(emotions);
 
-                if (isVoiceRecorded) {
-                    saveEmotion((Float) emotionDegree, emotion);
+                if (emotionsRecorded.containsKey(emotion)) {
+                    emotionsRecorded.put(
+                            emotion,
+                            (emotionsRecorded.get(emotion) + (Float) emotionDegree) / 2
+                    );
+                } else {
+                    emotionsRecorded.put(emotion, (Float) emotionDegree);
                 }
             }
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (ClassNotFoundException
+                | NoSuchMethodException
+                | IllegalAccessException
+                | InvocationTargetException e) {
             e.printStackTrace();
-        }
-        return faceEmotions.toString();
-    }
-
-    private void saveEmotion(Float emotionDegree, String emotion) {
-        if (emotionsRecorded.containsKey(emotion)) {
-            emotionsRecorded.put(emotion, (emotionsRecorded.get(emotion) + emotionDegree) / 2);
-        } else {
-            emotionsRecorded.put(emotion, emotionDegree);
         }
     }
 
@@ -314,8 +321,27 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
     private void stopRecordingVoice() {
         isVoiceRecorded = false;
-        startVoiceRecordedButton.setText("Start record");
         startVoiceRecordedButton.setEnabled(true);
+        startVoiceRecordedButton.setImageResource(R.drawable.voice_recorder_icon);
         emotionsRecorded.clear();
+    }
+
+    private void writeSpeechToText(Bundle results) {
+        ArrayList<String> textSpeech =
+                results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        txtSpeechInput.setText(String.valueOf(textSpeech.get(0)));
+
+        if (emotionsRecorded.size() > 0) {
+            txtSpeechInput.setTextColor(
+                    getResources().getColor(
+                            getEmotionColor(
+                                    getEmotionFromDegree(Collections.max(emotionsRecorded.values()))
+                            )));
+        }
+    }
+
+    private void speech() {
+        tts.speak(txtSpeechInput.getText().toString(),
+                TextToSpeech.QUEUE_FLUSH, null, null);
     }
 }
