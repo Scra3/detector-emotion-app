@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
+import services.OzGetter;
+import services.OzSuscriber;
+
 /**
  * This is a very bare sample app to demonstrate the usage of the CameraDetector object from Affectiva.
  * It displays statistics on frames per second, percenLOG_TAGe of time a face was detected, and the user's smile score.
@@ -40,7 +43,8 @@ import java.util.Locale;
  * <p>
  * For use with SDK 2.02
  */
-public class MainActivity extends Activity implements Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener {
+public class MainActivity extends Activity implements
+        Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener, OzSuscriber {
     private final String LOG_TAG = "CameraDetectorDemo";
     private final static String[] EMOTIONS = {"Anger", "Fear", "Sadness", "Joy"};
     private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
@@ -73,7 +77,6 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
         setContentView(R.layout.activity_main);
         mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
-
         txtSpeechInput = (EditText) findViewById(R.id.txt_speech_input);
         textClearButton = (ImageButton) findViewById(R.id.txt_clear_imageButton);
         switchViewButton = (ImageButton) findViewById(R.id.front_back_imageButton);
@@ -172,6 +175,8 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         detector.setImageListener(this);
         detector.setOnCameraEventListener(this);
         startDetector();
+
+        startOzMage();
     }
 
     void startDetector() {
@@ -366,13 +371,24 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
         if (emotionsRecorded.size() > 0) {
             String emotion = getEmotionFromDegree(Collections.max(emotionsRecorded.values()));
-            int emotionColor =getResources().getColor(getEmotionColor(emotion));
+            int emotionColor = getResources().getColor(getEmotionColor(emotion));
             Drawable emoImg = getResources().getDrawable(getEmotionEmoticon(emotion));
             emoticonImage.setBackgroundColor(emotionColor);
             emoticonImage.setImageDrawable(emoImg);
 
             txtSpeechInput.setTextColor(emotionColor);
         }
+    }
+
+    @Override
+    public void publish(String str) {
+        txtSpeechInput.setText("feojfejzo");
+    }
+
+    private void startOzMage() {
+        OzGetter ozGetter = new OzGetter();
+        ozGetter.suscribe(this);
+         runOnUiThread(ozGetter);
     }
 
     private void speech() {

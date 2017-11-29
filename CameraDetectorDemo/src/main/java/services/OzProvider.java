@@ -1,4 +1,4 @@
-package magicionOZ;
+package services;
 
 /**
  * Interface implémenter par le service de récupération des données du magicien 

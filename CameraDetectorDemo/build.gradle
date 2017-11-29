@@ -10,4 +10,5 @@ android {
 apply from: "../module-defaults.gradle"
 
 dependencies {
+    implementation files('src/main/java/services/lib/json_simple.jar')
 }
