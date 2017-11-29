@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
     <color name="Anger">#E72F55</color>
-    <color name="Fear">#35A251</color>
-    <color name="Disgust">#9E77BA</color>
-    <color name="Sadness">#729BC7</color>
+    <color name="Fear">#000</color>  <!--#35A251-->
+    <color name="Sadness">#6d7783</color> <!--#729BC7-->
     <color name="Joy">#FADB4D</color>
     <color name="Neutral">#000</color>
 </resources>

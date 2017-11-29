@@ -15,13 +15,12 @@
         android:id="@+id/view" />
 
     <ImageButton
-        android:id="@+id/front_back_button"
+        android:id="@+id/front_back_imageButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/view"
-        android:layout_alignStart="@+id/voice_start_imageButton"
-        android:layout_marginBottom="262dp"
-        android:layout_marginStart="17dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="15dp"
+        android:layout_toEndOf="@+id/txt_speech_input"
         android:background="@null"
         android:padding="5dp"
         android:src="@drawable/switch_camera_icon"
@@ -29,36 +28,53 @@
         android:textOn="BACK" />
 
     <ImageButton
-        android:id="@+id/voice_start_imageButton"
+        android:id="@+id/text_to_speech_imageButton"
+        android:src="@drawable/speech_to_voice_icon"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/txt_speech_input"
+        android:layout_height="50dp"
         android:layout_alignParentEnd="true"
-        android:src="@drawable/voice_recorder_icon"
-        android:background="@null"/>
+        android:layout_above="@+id/txt_speech_input"
+        android:background="@null" />
 
     <ImageButton
-        android:id="@+id/text_to_speech_imageButton"
+        android:id="@+id/voice_start_imageButton"
+        android:layout_marginEnd="14dp"
+        android:layout_toStartOf="@+id/text_to_speech_imageButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/txt_speech_input"
-        android:layout_marginEnd="14dp"
-        android:layout_toStartOf="@+id/voice_start_imageButton"
-        android:background="@null"
-        android:src="@drawable/speech_to_voice_icon" />
+        android:src="@drawable/voice_recorder_icon"
+        android:background="@null"/>
 
     <EditText
         android:id="@+id/txt_speech_input"
         android:layout_width="fill_parent"
         android:layout_height="80dp"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true"
-        android:textColor="@android:color/black"
-        android:textSize="20sp"
-        android:ems="10"
-        android:padding="10dp"
+        android:layout_toStartOf="@+id/txt_clear_imageButton"
         android:background="@drawable/rounded_border_edittext"
+        android:ems="10"
         android:hint="Voulez vous vous exprimer ?"
+        android:padding="10dp"
+        android:selectAllOnFocus="true"
+        android:textColor="@android:color/black"
         android:textColorHint="@android:color/black"
-        android:selectAllOnFocus="true"/>
+        android:textSize="20sp" />
+
+    <ImageButton
+        android:id="@+id/txt_clear_imageButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="22dp"
+        android:background="@null"
+        android:src="@android:drawable/ic_notification_clear_all" />
+
+    <ImageView
+        android:id="@+id/emoticon_imageView"
+        android:layout_width="150px"
+        android:layout_height="150px"
+        android:layout_above="@+id/txt_speech_input"
+        android:layout_alignStart="@+id/view"/>
 </RelativeLayout>
