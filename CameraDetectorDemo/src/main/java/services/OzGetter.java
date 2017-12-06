@@ -1,5 +1,11 @@
 package services;
 
+import android.util.Log;
+import android.widget.EditText;
+
+import com.affectiva.cameradetectordemo.MainActivity;
+import com.affectiva.cameradetectordemo.R;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,38 +18,42 @@ import org.json.simple.JSONValue;
 /**
  * Thread chargeant les données dispnible sur l'API web afin de les publier à l'application principale
  */
-public class OzGetter implements Runnable, OzProvider {
+public class OzGetter implements Runnable {
 
     /**
      * constante contenant l'url sur laquelle récupérer les données du magicien d'oz
      */
     private static final String URL_STR = "http://carretero.ovh/read";
+    private final MainActivity m;
 
     /**
      * temps entre deux requête GET sur l'url
      */
-    private static final int REFRESH_RATE = 2000;
+    private int refresh_rate = 1000;
 
     /**
      * objet java url de connexion
      */
     private URL url;
-
-    /**
-     * class implémentant {@link OzSuscriber} qui recevra les données lors de leur mise à jour
-     */
-    private OzSuscriber suscriber;
+    private String res = "";
 
     /**
      * Default constructor
      * initialise les variable locales afin de récupérer les données server
      */
-    public OzGetter() {
+    public OzGetter(MainActivity m) {
+        this.m = m;
         try {
             this.url = new URL(URL_STR);
         } catch (MalformedURLException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    synchronized public void start(){
+        Log.i("start", "thread started");
+        this.refresh_rate = 1000;
+        this.notifyAll();
     }
 
     /**
@@ -88,13 +98,14 @@ public class OzGetter implements Runnable, OzProvider {
 
         String previousData = "";
         while (!currentThread.isInterrupted()) {
+            Log.i("run", "running");
             String newData = "";
             try {
                 newData = fetchData();
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             }
-            if (!previousData.equals(newData) && this.suscriber != null) {
+            if (!previousData.equals(newData)) {
                 publish(newData);
                 previousData = newData;
             }
@@ -104,7 +115,7 @@ public class OzGetter implements Runnable, OzProvider {
 
     synchronized void syncWait() {
         try {
-            this.wait(REFRESH_RATE);
+            this.wait(refresh_rate);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -117,13 +128,11 @@ public class OzGetter implements Runnable, OzProvider {
      */
     private void publish(String json) {
         String res = (String) JSONValue.parse(json);
-        if (res != null) {
-            this.suscriber.publish(res.trim());
-        }
+        this.res = res.trim();
+        m.display(res);
     }
 
-    @Override
-    public void suscribe(OzSuscriber os) {
-        this.suscriber = os;
+    public String getRes(){
+        return res;
     }
 }

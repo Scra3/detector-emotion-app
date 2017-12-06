@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.speech.RecognitionListener;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 
 import services.OzGetter;
-import services.OzSuscriber;
 
 /**
  * This is a very bare sample app to demonstrate the usage of the CameraDetector object from Affectiva.
@@ -44,7 +44,8 @@ import services.OzSuscriber;
  * For use with SDK 2.02
  */
 public class MainActivity extends Activity implements
-        Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener, OzSuscriber {
+        Detector.ImageListener, CameraDetector.CameraEventListener, RecognitionListener {
+
     private final String LOG_TAG = "CameraDetectorDemo";
     private final static String[] EMOTIONS = {"Anger", "Fear", "Sadness", "Joy"};
     private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
@@ -70,6 +71,7 @@ public class MainActivity extends Activity implements
 
     int previewWidth = 0;
     int previewHeight = 0;
+    private OzGetter ozGetter;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -176,7 +178,9 @@ public class MainActivity extends Activity implements
         detector.setOnCameraEventListener(this);
         startDetector();
 
-        startOzMage();
+        OzGetter oz = new OzGetter(this);
+        new Thread(oz).start();
+
     }
 
     void startDetector() {
@@ -380,15 +384,8 @@ public class MainActivity extends Activity implements
         }
     }
 
-    @Override
-    public void publish(String str) {
-        txtSpeechInput.setText("feojfejzo");
-    }
-
     private void startOzMage() {
-        OzGetter ozGetter = new OzGetter();
-        ozGetter.suscribe(this);
-         runOnUiThread(ozGetter);
+        this.ozGetter.start();
     }
 
     private void speech() {
@@ -396,5 +393,15 @@ public class MainActivity extends Activity implements
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
         // Morse m = new Morse(text, vibrator, 100);
         // m.morseToImpulses();
+    }
+
+    public void display(final String res) {
+        Log.i("recept", res);
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtSpeechInput.setText(res);
+            }
+        });
     }
 }
