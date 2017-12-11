@@ -19,6 +19,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.affectiva.android.affdex.sdk.Frame;
 import com.affectiva.android.affdex.sdk.detector.CameraDetector;
@@ -46,6 +47,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
     private static HashMap<String, Float> emotionsRecorded = new HashMap<>();
 
     EditText txtSpeechInput;
+    TextView recordingMessage;
     TextToSpeech tts;
     ImageButton startVoiceRecordedButton;
     ImageButton switchViewButton;
@@ -75,6 +77,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
         mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
 
         txtSpeechInput = (EditText) findViewById(R.id.txt_speech_input);
+        recordingMessage = (TextView)  findViewById(R.id.recording_message_textView);
         textClearButton = (ImageButton) findViewById(R.id.txt_clear_imageButton);
         switchViewButton = (ImageButton) findViewById(R.id.front_back_imageButton);
         startVoiceRecordedButton = (ImageButton) findViewById(R.id.voice_start_imageButton);
@@ -86,6 +89,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
             @Override
             public void onClick(View v) {
                 txtSpeechInput.setText(null);
+                txtSpeechInput.setTextColor(getResources().getColor(R.color.Neutral));
                 emoticonImage.setImageDrawable(null);
                 emoticonImage.setBackground(null);
             }
@@ -123,7 +127,12 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
                 startVoiceRecordedButton.setEnabled(false);
                 startVoiceRecordedButton.setImageResource(R.drawable.voice_recorder_disabled_icon);
 
+                recordingMessage.setText("is recording ...");
+
                 txtSpeechInput.setText(null);
+
+                emoticonImage.setImageDrawable(null);
+                emoticonImage.setBackground(null);
 
                 promptSpeechInput();
             }
@@ -354,8 +363,12 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
     private void stopRecordingVoice() {
         isVoiceRecorded = false;
+
         startVoiceRecordedButton.setEnabled(true);
         startVoiceRecordedButton.setImageResource(R.drawable.voice_recorder_icon);
+
+        recordingMessage.setText(null);
+
         emotionsRecorded.clear();
     }
 
@@ -366,7 +379,7 @@ public class MainActivity extends Activity implements Detector.ImageListener, Ca
 
         if (emotionsRecorded.size() > 0) {
             String emotion = getEmotionFromDegree(Collections.max(emotionsRecorded.values()));
-            int emotionColor =getResources().getColor(getEmotionColor(emotion));
+            int emotionColor = getResources().getColor(getEmotionColor(emotion));
             Drawable emoImg = getResources().getDrawable(getEmotionEmoticon(emotion));
             emoticonImage.setBackgroundColor(emotionColor);
             emoticonImage.setImageDrawable(emoImg);
